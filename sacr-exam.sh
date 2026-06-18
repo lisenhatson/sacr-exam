@@ -56,31 +56,29 @@ log "==================== BASIC CONFIGURATION ===================="
 if check_remote $M1 "hostnamectl 2>/dev/null | grep -q 'machine1.sacr.id'" && check_remote $M2 "hostnamectl 2>/dev/null | grep -q 'machine2.sacr.id'"; then score=$((score+3)); log "✔ Hostname sesuai"; else log "✘ Hostname salah"; fi
 if check_remote $M1 "grep -q '^PermitRootLogin no' /etc/ssh/sshd_config 2>/dev/null" && check_remote $M2 "grep -q '^PermitRootLogin no' /etc/ssh/sshd_config 2>/dev/null"; then score=$((score+3)); log "✔ SSH non-root login OK"; else log "✘ SSH belum diset non-root"; fi
 
-log "==================== USER & GROUP ===================="
-if check_remote $M1 "getent group sacr &>/dev/null && getent group pclabs &>/dev/null"; then score=$((score+2)); log "✔ Grup sacr & pclabs ada"; else log "✘ Grup belum lengkap"; fi
-if check_remote $M1 "id adit &>/dev/null && id sopo &>/dev/null && id backupuser &>/dev/null && id jarwo &>/dev/null && id denis &>/dev/null"; then score=$((score+2)); log "✔ Semua user ada"; else log "✘ User belum lengkap"; fi
-if check_remote $M1 "id adit 2>/dev/null | grep -q sacr && id adit 2>/dev/null | grep -q pclabs"; then score=$((score+2)); log "✔ adit grup benar"; else log "✘ adit belum tergabung benar"; fi
-if check_remote $M1 "id sopo 2>/dev/null | grep sacr && id jarwo 2>/dev/null | grep sacr && id backupuser 2>/dev/null | grep sacr"; then score=$((score+2)); log "✔ sopo, jarwo, backupuser di sacr"; else log "✘ Grup anggota salah"; fi
-if check_remote $M1 "[ \"\$(id -u denis 2>/dev/null)\" = 2025 ] && grep -q '^denis:.*:/sbin/nologin$' /etc/passwd 2>/dev/null"; then score=$((score+2)); log "✔ Denis UID & shell OK"; else log "✘ Denis belum sesuai"; fi
-if check_remote $M1 "for u in adit sopo backupuser jarwo; do sshpass -p sysadmin ssh -q -o StrictHostKeyChecking=no -o ConnectTimeout=5 \$u@$M1 exit 2>/dev/null || exit 1; done"; then score=$((score+2)); log '✔ Password benar untuk semua user'; else log '✘ Password belum benar untuk salah satu user'; fi
+log "==================== LINUX FUNDAMENTAL ===================="
+if check_remote $M1 "[ -d ~/ujian_sacr ] && [ -f ~/ujian_sacr/audit.sh ]"; then score=$((score+2)); log "✔ Folder ujian_sacr dan audit.sh ada"; else log "✘ Folder ujian_sacr atau audit.sh tidak ada"; fi
+if check_remote $M1 "[ \"\$(stat -c '%a' ~/ujian_sacr/audit.sh 2>/dev/null)\" = '750' ]"; then score=$((score+2)); log "✔ Permission audit.sh benar"; else log "✘ Permission audit.sh salah"; fi
+if check_remote $M1 "getent group cyber &>/dev/null"; then score=$((score+2)); log "✔ Group cyber ada"; else log "✘ Group cyber belum ada"; fi
+if check_remote $M1 "id analyst &>/dev/null && id analyst | grep -q cyber"; then score=$((score+2)); log "✔ User analyst sesuai"; else log "✘ User analyst belum sesuai"; fi
+if check_remote $M1 "[ -d ~/projek_linux ]"; then score=$((score+2)); log "✔ Direktori projek_linux ada"; else log "✘ Direktori projek_linux belum ada"; fi
+if check_remote $M1 "[ -f ~/projek_linux/readme.txt ] && [ -f ~/projek_linux/config.txt ]"; then score=$((score+2)); log "✔ File projek_linux lengkap"; else log "✘ File projek_linux belum lengkap"; fi
+if check_remote $M1 "[ -f ~/projek_linux/readme_backup.txt ]"; then score=$((score+2)); log "✔ Backup file berhasil dibuat"; else log "✘ Backup file belum dibuat"; fi
+if check_remote $M1 "[ -f ~/arsip/laporan_final.txt ]"; then score=$((score+2)); log "✔ laporan_final.txt ditemukan"; else log "✘ laporan_final.txt tidak ditemukan"; fi
+if check_remote $M1 "getent group tim_it &>/dev/null"; then score=$((score+2)); log "✔ Group tim_it ada"; else log "✘ Group tim_it belum ada"; fi
+if check_remote $M1 "id operator01 &>/dev/null && id operator01 | grep -q tim_it"; then score=$((score+2)); log "✔ User operator01 sesuai"; else log "✘ User operator01 belum sesuai"; fi
 
-UID1=$(check_remote $M1 "id -u backupuser" | tr -d '\r\n')
-UID2=$(check_remote $M2 "id -u backupuser" | tr -d '\r\n')
-GID1=$(check_remote $M1 "getent group sacr | cut -d: -f3" | tr -d '\r\n')
-GID2=$(check_remote $M2 "getent group sacr | cut -d: -f3" | tr -d '\r\n')
-if [ "$UID1" = "$UID2" ] && [ "$GID1" = "$GID2" ] && [ -n "$UID1" ]; then log "✔ backupuser dan grup sacr sinkron di kedua mesin (UID=$UID1, GID=$GID1)"; else log "✘ UID/GID backupuser atau sacr berbeda (UID: $UID1/$UID2, GID: $GID1/$GID2)"; fi
-
-log "==================== FILE PERMISSION ===================="
-if check_remote $M1 "[ -d /data/sacr ] && stat -c '%U %G' /data/sacr 2>/dev/null | grep -q 'adit sacr'"; then score=$((score+3)); log "✔ /data/sacr milik adit:sacr"; else log "✘ Kepemilikan salah"; fi
-if check_remote $M1 '[ "$(stat -c "%a" /data/sacr 2>/dev/null)" -eq 760 ] || [ "$(stat -c "%a" /data/sacr 2>/dev/null)" -eq 1760 ]'; then score=$((score+3)); log "✔ Permission 760 OK"; else log "✘ Permission salah"; fi
-if check_remote $M1 "stat -c '%A' /data/sacr 2>/dev/null | grep -qi 't'"; then score=$((score+3)); log "✔ Sticky bit OK"; else log "✘ Sticky bit belum"; fi
-OWNER=$(check_remote $M1 "sudo stat -c '%U' /data/sacr/info.txt 2>/dev/null")
-PERM=$(check_remote $M1 "sudo stat -c '%a' /data/sacr/info.txt 2>/dev/null")
-if [ "$OWNER" = "jarwo" ] && [ "$PERM" = "400" ]; then score=$((score+2)); log "✔ info.txt hanya jarwo"; else log "✘ info.txt permission salah"; fi
-
-log "==================== BASH SCRIPTING ===================="
-if check_remote $M1 "[ -x /usr/local/bin/greetuser ] && grep -q 'read' /usr/local/bin/greetuser 2>/dev/null"; then score=$((score+5)); log "✔ greetuser OK"; else log "✘ greetuser salah"; fi
-if check_remote $M1 "[ -x /home/sysadmin/welkem.sh ] && echo | /home/sysadmin/welkem.sh &>/dev/null"; then score=$((score+3)); log "✔ welkem.sh OK"; else log "✘ welkem.sh belum bisa dijalankan"; fi
+log "==================== SERVER FUNDAMENTAL ===================="
+if check_remote $M1 "[ -f ~/.ssh/ujian_key ] && [ -f ~/.ssh/ujian_key.pub ]"; then score=$((score+4)); log "✔ SSH key ujian_key ada"; else log "✘ SSH key belum dibuat"; fi
+if check_remote $M1 "systemctl is-active ssh 2>/dev/null | grep -q active"; then score=$((score+2)); log "✔ Service SSH aktif"; else log "✘ Service SSH tidak aktif"; fi
+if check_remote $M1 "systemctl is-active mariadb 2>/dev/null | grep -q active"; then score=$((score+4)); log "✔ MariaDB aktif"; else log "✘ MariaDB tidak aktif"; fi
+if check_remote $M1 "sudo mariadb -e \"SELECT User FROM mysql.user\" 2>/dev/null | grep -q user_ujian"; then score=$((score+4)); log "✔ User MariaDB user_ujian ada"; else log "✘ User MariaDB belum dibuat"; fi
+if check_remote $M1 "systemctl is-active nginx 2>/dev/null | grep -q active"; then score=$((score+4)); log "✔ Nginx aktif"; else log "✘ Nginx tidak aktif"; fi
+if check_remote $M1 "sudo nginx -T 2>/dev/null | grep -q 'listen 8080'"; then score=$((score+4)); log "✔ Nginx listen 8080"; else log "✘ Konfigurasi Nginx salah"; fi
+if check_remote $M1 "curl -s localhost:8080 >/dev/null 2>&1"; then score=$((score+3)); log "✔ Website dapat diakses"; else log "✘ Website tidak dapat diakses"; fi
+if check_remote $M1 "sudo ufw status 2>/dev/null | grep -q '22/tcp'"; then score=$((score+2)); log "✔ Rule SSH ada"; else log "✘ Rule SSH tidak ditemukan"; fi
+if check_remote $M1 "sudo ufw status 2>/dev/null | grep -q '8080'"; then score=$((score+2)); log "✔ Rule port 8080 ada"; else log "✘ Rule port 8080 tidak ditemukan"; fi
+if check_remote $M1 "sudo ufw status 2>/dev/null | grep -q '3306'"; then score=$((score+2)); log "✔ Rule port 3306 ada"; else log "✘ Rule port 3306 tidak ditemukan"; fi
 
 log "==================== DOCKER WEB ===================="
 if check_remote $M2 "docker image ls 2>/dev/null | grep -q 'sacr-web-image'"; then score=$((score+4)); log "✔ Image ada"; else log "✘ Image belum dibuat"; fi
