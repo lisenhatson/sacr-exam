@@ -111,10 +111,29 @@ if check_remote $M1 "sudo ufw status 2>/dev/null | grep -q '22/tcp'"; then SCORE
 if check_remote $M1 "sudo ufw status 2>/dev/null | grep -q '8080'"; then SCORE=$((SCORE+2)); log "✔ Rule port 8080 ada"; else log "✘ Rule port 8080 tidak ditemukan"; fi
 if check_remote $M1 "sudo ufw status 2>/dev/null | grep -q '3306'"; then SCORE=$((SCORE+2)); log "✔ Rule port 3306 ada"; else log "✘ Rule port 3306 tidak ditemukan"; fi
 
-log "==================== DOCKER WEB ===================="
-if check_remote $M2 "docker image ls 2>/dev/null | grep -q 'sacr-web-image'"; then SCORE=$((SCORE+4)); log "✔ Image ada"; else log "✘ Image belum dibuat"; fi
-if check_remote $M2 "docker ps --filter name=sacr-web-con --format '{{.Ports}}' 2>/dev/null | grep -q '8080->'"; then SCORE=$((SCORE+4)); log "✔ Container jalan dan port 8080 terbuka"; else log "✘ Container belum / port belum sesuai"; fi
-if check_remote $M2 "curl -s localhost:8080 >/dev/null 2>&1"; then SCORE=$((SCORE+3)); log "✔ Website bisa dibuka"; else log "✘ Website gagal"; fi
+log "==================== DOCKER ===================="
+if check_remote $M2 "[ -f Dockerfile ]"; then SCORE=$((SCORE+2)); log "✔ Dockerfile ditemukan"; else log "✘ Dockerfile tidak ditemukan"; fi
+if check_remote $M2 "[ -f app.py ]"; then SCORE=$((SCORE+2)); log "✔ app.py ditemukan"; else log "✘ app.py tidak ditemukan"; fi
+if check_remote $M2 "sudo docker run --rm python-demo 2>/dev/null | grep -q 'Hello From Docker Container'"; then SCORE=$((SCORE+8)); log "✔ Image python-demo dapat dieksekusi"; else log "✘ Image python-demo tidak dapat dieksekusi"; fi
+if check_remote $M2 "curl -s http://localhost:8080 >/dev/null 2>&1"; then SCORE=$((SCORE+8)); log "✔ Container nginx berjalan dan dapat diakses"; else log "✘ Container nginx tidak dapat diakses"; fi
+
+log "==================== PUBLIC KEY INFRASTRUCTURE ===================="
+if check_remote $M1 "[ -f rootCA.key ]"; then SCORE=$((SCORE+2)); log "✔ rootCA.key ada"; else log "✘ rootCA.key tidak ditemukan"; fi
+if check_remote $M1 "[ -f rootCA.crt ]"; then SCORE=$((SCORE+2)); log "✔ rootCA.crt ada"; else log "✘ rootCA.crt tidak ditemukan"; fi
+if check_remote $M1 "openssl x509 -in rootCA.crt -noout -subject 2>/dev/null | grep -q 'CN = SACR Root CA'"; then SCORE=$((SCORE+2)); log "✔ Subject Root CA benar"; else log "✘ Subject Root CA salah"; fi
+if check_remote $M1 "openssl x509 -in rootCA.crt -noout -issuer 2>/dev/null | grep -q 'CN = SACR Root CA'"; then SCORE=$((SCORE+2)); log "✔ Issuer Root CA benar"; else log "✘ Issuer Root CA salah"; fi
+if check_remote $M1 "[ -f intermediateCA.key ]"; then SCORE=$((SCORE+2)); log "✔ intermediateCA.key ada"; else log "✘ intermediateCA.key tidak ditemukan"; fi
+if check_remote $M1 "[ -f intermediateCA.csr ]"; then SCORE=$((SCORE+2)); log "✔ intermediateCA.csr ada"; else log "✘ intermediateCA.csr tidak ditemukan"; fi
+if check_remote $M1 "[ -f intermediateCA.crt ]"; then SCORE=$((SCORE+2)); log "✔ intermediateCA.crt ada"; else log "✘ intermediateCA.crt tidak ditemukan"; fi
+if check_remote $M1 "openssl x509 -in intermediateCA.crt -noout -subject 2>/dev/null | grep -q 'CN = SACR Intermediate CA'"; then SCORE=$((SCORE+2)); log "✔ Subject Intermediate CA benar"; else log "✘ Subject Intermediate CA salah"; fi
+if check_remote $M1 "openssl x509 -in intermediateCA.crt -noout -issuer 2>/dev/null | grep -q 'CN = SACR Root CA'"; then SCORE=$((SCORE+2)); log "✔ Issuer Intermediate CA benar"; else log "✘ Issuer Intermediate CA salah"; fi
+if check_remote $M1 "[ -f server.key ]"; then SCORE=$((SCORE+2)); log "✔ server.key ada"; else log "✘ server.key tidak ditemukan"; fi
+if check_remote $M1 "[ -f server.csr ]"; then SCORE=$((SCORE+2)); log "✔ server.csr ada"; else log "✘ server.csr tidak ditemukan"; fi
+if check_remote $M1 "[ -f server.crt ]"; then SCORE=$((SCORE+2)); log "✔ server.crt ada"; else log "✘ server.crt tidak ditemukan"; fi
+if check_remote $M1 "openssl x509 -in server.crt -noout -subject 2>/dev/null | grep -q 'CN = server.sacr.local'"; then SCORE=$((SCORE+3)); log "✔ Subject Server benar"; else log "✘ Subject Server salah"; fi
+if check_remote $M1 "openssl x509 -in server.crt -noout -issuer 2>/dev/null | grep -q 'CN = SACR Intermediate CA'"; then SCORE=$((SCORE+3)); log "✔ Issuer Server benar"; else log "✘ Issuer Server salah"; fi
+if check_remote $M1 "[ -f fullchain.pem ]"; then SCORE=$((SCORE+2)); log "✔ fullchain.pem ada"; else log "✘ fullchain.pem tidak ditemukan"; fi
+if check_remote $M1 "openssl verify -CAfile rootCA.crt -untrusted intermediateCA.crt server.crt 2>/dev/null | grep -q 'server.crt: OK'"; then SCORE=$((SCORE+5)); log "✔ Chain of Trust valid"; else log "✘ Chain of Trust gagal"; fi
 
 #
 log "==================== PARTISI & FILESYSTEM ===================="
