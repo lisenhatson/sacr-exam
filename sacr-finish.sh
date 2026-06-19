@@ -15,4 +15,4 @@ echo ""
 echo "Menghitung nilai..."
 echo ""
 
-sacr-grade "$PESERTA"
+sacr-exam "$PESERTA"
