@@ -1,15 +1,16 @@
 #!/bin/bash
 
-NAME_FILE="/tmp/sacr_name.log"
+TIME_LOG="/tmp/sacr_start_time.log"
 
-if [ ! -f "$NAME_FILE" ]; then
+if [ ! -f "$TIME_LOG" ]; then
     echo "Belum ada sesi ujian."
     echo "Jalankan:"
     echo "sacr start"
     exit 1
 fi
 
-PESERTA=$(cat "$NAME_FILE")
+echo ""
+read -p "Masukkan nama peserta : " PESERTA
 
 echo ""
 echo "Menghitung nilai..."
